@@ -2,6 +2,8 @@
 
 // check for development mode
 $DEV_MODE = (getenv('DEV_MODE') == 'y');
+// check for demo mode
+$DEMO_MODE = (getenv('DEMO_MODE') == 'y');
 
 // Slave does not serve UI
 /* if (!preg_match('/y|yes/i', getenv('MASTER'))) {
@@ -44,21 +46,6 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lib/CSSminifierExtended.php';
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/lib/array_merge_real.php';
 
-// Minify JS
-use MatthiasMullie\Minify;
-$js_minifier = new JSminifierExtended();
-$js_dir = array_diff(scandir('/web/js/build'), array('..', '.'));
-foreach ($js_dir as $js_file) {
-  $js_minifier->add('/web/js/build/' . $js_file);
-}
-
-// Minify CSS
-$css_minifier = new CSSminifierExtended();
-$css_dir = array_diff(scandir('/web/css/build'), array('..', '.'));
-foreach ($css_dir as $css_file) {
-  $css_minifier->add('/web/css/build/' . $css_file);
-}
-
 // U2F API + T/HOTP API
 // u2f - deprecated, should be removed
 $u2f = new u2flib_server\U2F('https://' . $_SERVER['HTTP_HOST']);
@@ -66,8 +53,9 @@ $qrprovider = new RobThree\Auth\Providers\Qr\QRServerProvider();
 $tfa = new RobThree\Auth\TwoFactorAuth($OTP_LABEL, 6, 30, 'sha1', $qrprovider);
 
 // FIDO2
+$server_name = parse_url('https://' . $_SERVER['HTTP_HOST'], PHP_URL_HOST);
 $formats = $GLOBALS['FIDO2_FORMATS'];
-$WebAuthn = new lbuchs\WebAuthn\WebAuthn('WebAuthn Library', $_SERVER['HTTP_HOST'], $formats);
+$WebAuthn = new lbuchs\WebAuthn\WebAuthn('WebAuthn Library', $server_name, $formats);
 // only include root ca's when needed
 if (getenv('WEBAUTHN_ONLY_TRUSTED_VENDORS') == 'y') $WebAuthn->addRootCertificates($_SERVER['DOCUMENT_ROOT'] . '/inc/lib/WebAuthn/rootCertificates');
 
@@ -80,8 +68,11 @@ try {
   else {
     $redis->connect('redis-mailcow', 6379);
   }
+  $redis->auth(getenv("REDISPASS"));
 }
 catch (Exception $e) {
+// Stop when redis is not available
+http_response_code(500);
 ?>
 <center style='font-family:sans-serif;'>Connection to Redis failed.<br /><br />The following error was reported:<br/><?=$e->getMessage();?></center>
 <?php
@@ -110,6 +101,7 @@ try {
 }
 catch (PDOException $e) {
 // Stop when SQL connection fails
+http_response_code(500);
 ?>
 <center style='font-family:sans-serif;'>Connection to database failed.<br /><br />The following error was reported:<br/>  <?=$e->getMessage();?></center>
 <?php
@@ -117,6 +109,7 @@ exit;
 }
 // Stop when dockerapi is not available
 if (fsockopen("tcp://dockerapi", 443, $errno, $errstr) === false) {
+  http_response_code(500);
 ?>
 <center style='font-family:sans-serif;'>Connection to dockerapi container failed.<br /><br />The following error was reported:<br/><?=$errno;?> - <?=$errstr;?></center>
 <?php
@@ -194,9 +187,65 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/sessions.inc.php';
 // Set language
 if (!isset($_SESSION['mailcow_locale']) && !isset($_COOKIE['mailcow_locale'])) {
   if ($DETECT_LANGUAGE && isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-    $header_lang = strtolower(substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0, 2));
-    if (array_key_exists($header_lang, $AVAILABLE_LANGUAGES)) {
-      $_SESSION['mailcow_locale'] = $header_lang;
+    // regex inspired from @GabrielAnderson on http://stackoverflow.com/questions/6038236/http-accept-language
+    preg_match_all('/([a-z]{1,8}(-[a-z]{1,8})*)\s*(;\s*q\s*=\s*(1|0\.[0-9]+))?/i', $_SERVER['HTTP_ACCEPT_LANGUAGE'], $lang_parse);
+
+    $langs = $lang_parse[1];
+    $ranks = $lang_parse[4];
+
+    // (create an associative array 'language' => 'preference')
+    $lang2pref = array();
+    for ($i=0; $i<count($langs); $i++) {
+      $lang2pref[strtolower($langs[$i])] = (float) (!empty($ranks[$i]) ? $ranks[$i] : 1);
+    }
+
+    // (comparison function for uksort)
+    $cmpLangs = function ($a, $b) use ($lang2pref) {
+      if ($lang2pref[$a] > $lang2pref[$b])
+        return -1;
+      elseif ($lang2pref[$a] < $lang2pref[$b])
+        return 1;
+      elseif (strlen($a) > strlen($b))
+        return -1;
+      elseif (strlen($a) < strlen($b))
+        return 1;
+      else
+        return 0;
+    };
+
+    // sort the languages by prefered language and by the most specific region
+    uksort($lang2pref, $cmpLangs);
+
+    // generate language array without the region part
+    $AVAILABLE_BASE_LANGUAGES=array();
+    foreach ($AVAILABLE_LANGUAGES as $code => $lang) {
+      $base_code = substr($code, 0, 2);
+      if (!array_key_exists($base_code, $AVAILABLE_BASE_LANGUAGES)) {
+        $AVAILABLE_BASE_LANGUAGES[$base_code] = $code;
+      }
+    }
+
+    // Find a perfect match or partial match
+    // Match en-gb or en
+    foreach ($lang2pref as $lang => $q) {
+      if (array_key_exists($lang, $AVAILABLE_LANGUAGES)) {
+        $_SESSION['mailcow_locale'] = $lang;
+        break;
+      } elseif (array_key_exists($lang, $AVAILABLE_BASE_LANGUAGES)) {
+        $_SESSION['mailcow_locale'] = $AVAILABLE_BASE_LANGUAGES[$lang];
+        break;
+      }
+    }
+
+    // Try suggest match
+    // e.g. suggest en-gb when only en-us is provided
+    if (!isset($_SESSION['mailcow_locale'])) {
+      foreach ($lang2pref as $lang => $q) {
+        if (array_key_exists(substr($lang, 0, 2), $AVAILABLE_BASE_LANGUAGES)) {
+          $_SESSION['mailcow_locale'] = $AVAILABLE_BASE_LANGUAGES[substr($lang, 0, 2)];
+          break;
+        }
+      }
     }
   }
   else {
@@ -214,12 +263,13 @@ if (isset($_GET['lang']) && array_key_exists($_GET['lang'], $AVAILABLE_LANGUAGES
 /*
  * load language
  */
-$lang = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'] . '/lang/lang.en.json'), true);
+$lang = json_decode(file_get_contents($_SERVER['DOCUMENT_ROOT'] . '/lang/lang.en-gb.json'), true);
 
 $langFile = $_SERVER['DOCUMENT_ROOT'] . '/lang/lang.'.$_SESSION['mailcow_locale'].'.json';
 if(file_exists($langFile)) {
   $lang = array_merge_real($lang, json_decode(file_get_contents($langFile), true));
 }
+
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/functions.acl.inc.php';
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/functions.address_rewriting.inc.php';
@@ -255,4 +305,29 @@ if (isset($_SESSION['mailcow_cc_role'])) {
   // }
   acl('to_session');
 }
+
+// init frontend
+// Minify JS
+use MatthiasMullie\Minify;
+$js_minifier = new JSminifierExtended();
+$js_dir = array_diff(scandir('/web/js/build'), array('..', '.'));
+// Minify CSS
+$css_minifier = new CSSminifierExtended();
+$css_dir = array_diff(scandir('/web/css/build'), array('..', '.'));
+// get customized ui data
 $UI_TEXTS = customize('get', 'ui_texts');
+
+
+// minify bootstrap theme
+if (file_exists('/web/css/themes/'.$UI_THEME.'-bootstrap.css'))
+  $css_minifier->add('/web/css/themes/'.$UI_THEME.'-bootstrap.css');
+else
+  $css_minifier->add('/web/css/themes/lumen-bootstrap.css');
+// minify css build files
+foreach ($css_dir as $css_file) {
+  $css_minifier->add('/web/css/build/' . $css_file);
+}
+// minify js build files
+foreach ($js_dir as $js_file) {
+  $js_minifier->add('/web/js/build/' . $js_file);
+}

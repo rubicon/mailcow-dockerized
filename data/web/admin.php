@@ -10,9 +10,6 @@ require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/header.inc.php';
 $_SESSION['return_to'] = $_SERVER['REQUEST_URI'];
 $tfa_data = get_tfa();
 $fido2_data = fido2(array("action" => "get_friendly_names"));
-if (!isset($_SESSION['gal']) && $license_cache = $redis->Get('LICENSE_STATUS_CACHE')) {
-  $_SESSION['gal'] = json_decode($license_cache, true);
-}
 
 $js_minifier->add('/web/js/site/admin.js');
 $js_minifier->add('/web/js/presets/rspamd.js');
@@ -83,6 +80,12 @@ foreach ($RSPAMD_MAPS['regex'] as $rspamd_regex_desc => $rspamd_regex_map) {
   ];
 }
 
+// cors settings
+$cors_settings = cors('get');
+$cors_settings['allowed_origins'] = str_replace(", ", "\n", $cors_settings['allowed_origins']);
+$cors_settings['allowed_methods'] = explode(", ", $cors_settings['allowed_methods']);
+
+$f2b_data = fail2ban('get');
 
 $template = 'admin.twig';
 $template_data = [
@@ -90,8 +93,6 @@ $template_data = [
   'tfa_id' => @$_SESSION['tfa_id'],
   'fido2_cid' => @$_SESSION['fido2_cid'],
   'fido2_data' => $fido2_data,
-  'gal' => @$_SESSION['gal'],
-  'license_guid' => license('guid'),
   'api' => [
     'ro' => admin_api('ro', 'get'),
     'rw' => admin_api('rw', 'get'),
@@ -102,16 +103,23 @@ $template_data = [
   'domains' => $domains,
   'all_domains' => $all_domains,
   'mailboxes' => $mailboxes,
-  'f2b_data' => fail2ban('get'),
+  'f2b_data' => $f2b_data,
+  'f2b_banlist_url' => getBaseUrl() . "/f2b-banlist?id=" . $f2b_data['banlist_id'],
   'q_data' => quarantine('settings'),
   'qn_data' => quota_notification('get'),
+  'pw_reset_data' => reset_password('get_notification'),
   'rsettings_map' => file_get_contents('http://nginx:8081/settings.php'),
   'rsettings' => $rsettings,
   'rspamd_regex_maps' => $rspamd_regex_maps,
   'logo_specs' => customize('get', 'main_logo_specs'),
+  'logo_dark_specs' => customize('get', 'main_logo_dark_specs'),
+  'ip_check' => customize('get', 'ip_check'),
   'password_complexity' => password_complexity('get'),
   'show_rspamd_global_filters' => @$_SESSION['show_rspamd_global_filters'],
+  'cors_settings' => $cors_settings,
+  'is_https' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
   'lang_admin' => json_encode($lang['admin']),
+  'lang_datatables' => json_encode($lang['datatables'])
 ];
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.inc.php';

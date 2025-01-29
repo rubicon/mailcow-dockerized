@@ -40,6 +40,9 @@ $template_data = [
   'domains' => $domains,
   'mailboxes' => $mailboxes,
   'lang_mailbox' => json_encode($lang['mailbox']),
+  'lang_rl' => json_encode($lang['ratelimit']),
+  'lang_edit' => json_encode($lang['edit']),
+  'lang_datatables' => json_encode($lang['datatables']),
 ];
 
 require_once $_SERVER['DOCUMENT_ROOT'] . '/inc/footer.inc.php';

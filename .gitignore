@@ -13,6 +13,7 @@ data/conf/dovecot/acl_anyone
 data/conf/dovecot/dovecot-master.passwd
 data/conf/dovecot/dovecot-master.userdb
 data/conf/dovecot/extra.conf
+data/conf/dovecot/mail_replica.conf
 data/conf/dovecot/global_sieve_*
 data/conf/dovecot/last_login
 data/conf/dovecot/lua
@@ -22,6 +23,7 @@ data/conf/dovecot/sni.conf
 data/conf/dovecot/sogo-sso.conf
 data/conf/dovecot/sogo_trusted_ip.conf
 data/conf/dovecot/sql
+data/conf/dovecot/conf.d/fts.conf
 data/conf/nextcloud-*.bak
 data/conf/nginx/*.active
 data/conf/nginx/*.bak
@@ -36,12 +38,15 @@ data/conf/postfix/extra.cf
 data/conf/postfix/sni.map
 data/conf/postfix/sni.map.db
 data/conf/postfix/sql
+data/conf/postfix/dns_blocklists.cf
+data/conf/postfix/dnsbl_reply.map
 data/conf/rspamd/custom/*
 data/conf/rspamd/local.d/*
 data/conf/rspamd/override.d/*
 data/conf/sogo/custom-theme.js
 data/conf/sogo/plist_ldap
 data/conf/sogo/sieve.creds
+data/conf/sogo/cron.creds
 data/conf/sogo/sogo-full.svg
 data/gitea/
 data/gogs/

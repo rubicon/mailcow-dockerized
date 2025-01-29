@@ -76,39 +76,47 @@ $autodiscover_config = array(
 $DETECT_LANGUAGE = true;
 
 // Change default language
-$DEFAULT_LANG = 'en';
+$DEFAULT_LANG = 'en-gb';
 
 // Available languages
 // https://www.iso.org/obp/ui/#search
-// https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes
+// https://en.wikipedia.org/wiki/IETF_language_tag
 $AVAILABLE_LANGUAGES = array(
-  'cs' => 'Čeština (Czech)',
-  'da' => 'Danish (Dansk)',
-  'de' => 'Deutsch (German)',
-  'en' => 'English',
-  'es' => 'Español (Spanish)',
-  'fi' => 'Suomi (Finish)',
-  'fr' => 'Français (French)',
-  'hu' => 'Magyar (Hungarian)',
-  'it' => 'Italiano (Italian)',
-  'ko' => '한국어 (Korean)',
-  'lv' => 'latviešu (Latvian)',
-  'nl' => 'Nederlands (Dutch)',
-  'pl' => 'Język Polski (Polish)',
-  'pt' => 'Português (Portuguese)',
-  'ro' => 'Română (Romanian)',
-  'ru' => 'Pусский (Russian)',
-  'sk' => 'Slovenčina (Slovak)',
-  'sv' => 'Svenska (Swedish)',
-  'zh' => '中文 (Chinese)'
+  // 'ca-es' => 'Català (Catalan)',
+  'cs-cz' => 'Čeština (Czech)',
+  'da-dk' => 'Danish (Dansk)',
+  'de-de' => 'Deutsch (German)',
+  'en-gb' => 'English',
+  'es-es' => 'Español (Spanish)',
+  'fi-fi' => 'Suomi (Finish)',
+  'fr-fr' => 'Français (French)',
+  'gr-gr' => 'Ελληνικά (Greek)',
+  'hu-hu' => 'Magyar (Hungarian)',
+  'it-it' => 'Italiano (Italian)',
+  'ja-jp' => '日本語 (Japanese)',
+  'ko-kr' => '한국어 (Korean)',
+  'lv-lv' => 'latviešu (Latvian)',
+  'lt-lt' => 'Lietuvių (Lithuanian)',
+  'nb-no' => 'Norsk (Norwegian)',
+  'nl-nl' => 'Nederlands (Dutch)',
+  'pl-pl' => 'Język Polski (Polish)',
+  'pt-br' => 'Português brasileiro (Brazilian Portuguese)',
+  'pt-pt' => 'Português (Portuguese)',
+  'ro-ro' => 'Română (Romanian)',
+  'ru-ru' => 'Pусский (Russian)',
+  'si-si' => 'Slovenščina (Slovenian)',
+  'sk-sk' => 'Slovenčina (Slovak)',
+  'sv-se' => 'Svenska (Swedish)',
+  'tr-tr' => 'Türkçe (Turkish)',
+  'uk-ua' => 'Українська (Ukrainian)',
+  'zh-cn' => '简体中文 (Simplified Chinese)',
+  'zh-tw' => '繁體中文 (Traditional Chinese)',
 );
 
-// Change theme (default: lumen)
-// Needs to be one of those: cerulean, cosmo, cyborg, darkly, flatly, journal, lumen, paper, readable, sandstone,
-// simplex, slate, spacelab, superhero, united, yeti
-// See https://bootswatch.com/
-// WARNING: Only lumen is loaded locally. Enabling any other theme, will download external sources.
-$DEFAULT_THEME = 'lumen';
+// default theme is lumen
+// additional themes can be found here: https://bootswatch.com/
+// copy them to data/web/css/themes/{THEME-NAME}-bootstrap.css
+$UI_THEME = "lumen";
 
 // Show DKIM private keys - false by default
 $SHOW_DKIM_PRIV_KEYS = false;
@@ -121,8 +129,17 @@ $MAILCOW_APPS = array(
   )
 );
 
+// Logo max file size in bytes
+$LOGO_LIMITS['max_size'] = 15 * 1024 * 1024; // 15MB
+
+// Logo max width in pixels
+$LOGO_LIMITS['max_width'] = 1920;
+
+// Logo max height in pixels
+$LOGO_LIMITS['max_height'] = 1920;
+
 // Rows until pagination begins
-$PAGINATION_SIZE = 20;
+$PAGINATION_SIZE = 25;
 
 // Default number of rows/lines to display (log table)
 $LOG_LINES = 1000;
@@ -147,6 +164,9 @@ $REFRESH_TOKEN_LIFETIME = 2678400;
 $ACCESS_TOKEN_LIFETIME = 86400;
 // Logout from mailcow after first OAuth2 session profile request
 $OAUTH2_FORGET_SESSION_AFTER_LOGIN = false;
+
+// Set a limit for mailbox and domain tagging
+$TAGGING_LIMIT = 25;
 
 // MAILBOX_DEFAULT_ATTRIBUTES define default attributes for new mailboxes
 // These settings will not change existing mailboxes
@@ -191,6 +211,12 @@ $MAILBOX_DEFAULT_ATTRIBUTES['mailbox_format'] = 'maildir:';
 // Show last IMAP and POP3 logins
 $SHOW_LAST_LOGIN = true;
 
+// Maximum number of password reset tokens that can be generated at once per user
+$PW_RESET_TOKEN_LIMIT = 3;
+
+// Maximum time in minutes a password reset token is valid
+$PW_RESET_TOKEN_LIFETIME = 15;
+
 // UV flag handling in FIDO2/WebAuthn - defaults to false to allow iOS logins
 // true = required
 // false = preferred
@@ -222,5 +248,135 @@ $RSPAMD_MAPS = array(
     'Bulk Mail Headers' => 'bulk_header.map',
     'Bad (Junk) Mail Headers' => 'bad_header.map',
     'Monitoring Hosts' => 'monitoring_nolog.map'
+  )
+);
+
+
+$IMAPSYNC_OPTIONS = array(
+  'whitelist' => array(
+    'abort',     
+    'authmd51',        
+    'authmd52',           
+    'authmech1',
+    'authmech2',
+    'authuser1', 
+    'authuser2', 
+    'debug',   
+    'debugcontent', 
+    'debugcrossduplicates', 
+    'debugflags',    
+    'debugfolders',            
+    'debugimap',    
+    'debugimap1',     
+    'debugimap2',   
+    'debugmemory',       
+    'debugssl',              
+    'delete1emptyfolders',
+    'delete2folders',    
+    'disarmreadreceipts', 
+    'domain1',
+    'domain2',
+    'domino1',   
+    'domino2',  
+    'dry',
+    'errorsmax',
+    'exchange1',   
+    'exchange2',   
+    'exitwhenover',
+    'expunge1',
+    'f1f2',  
+    'filterbuggyflags',  
+    'folder',
+    'folderfirst',
+    'folderlast',
+    'folderrec',
+    'gmail1',     
+    'gmail2',    
+    'idatefromheader',   
+    'include',
+    'inet4',
+    'inet6',
+    'justconnect',  
+    'justfolders',  
+    'justfoldersizes',  
+    'justlogin',   
+    'keepalive1',   
+    'keepalive2',   
+    'log',
+    'logdir',
+    'logfile',        
+    'maxbytesafter',
+    'maxlinelength',
+    'maxmessagespersecond',
+    'maxsize',
+    'maxsleep',
+    'minage',
+    'minsize',
+    'noabletosearch', 
+    'noabletosearch1',  
+    'noabletosearch2',   
+    'noexpunge1',        
+    'noexpunge2',   
+    'nofoldersizesatend',
+    'noid',       
+    'nolog',  
+    'nomixfolders',          
+    'noresyncflags',   
+    'nossl1',   
+    'nossl2',            
+    'nosyncacls',      
+    'notls1', 
+    'notls2',              
+    'nouidexpunge2',   
+    'nousecache',      
+    'oauthaccesstoken1',
+    'oauthaccesstoken2',
+    'oauthdirect1',
+    'oauthdirect2',
+    'office1',    
+    'office2',      
+    'pidfile', 
+    'pidfilelocking', 
+    'prefix1',
+    'prefix2',
+    'proxyauth1',  
+    'proxyauth2',         
+    'resyncflags',     
+    'resynclabels',     
+    'search', 
+    'search1',
+    'search2', 
+    'sep1',
+    'sep2',
+    'showpasswords',
+    'skipemptyfolders',
+    'ssl2',            
+    'sslargs1',
+    'sslargs2', 
+    'subfolder1',
+    'subscribe',   
+    'subscribed',
+    'syncacls',
+    'syncduplicates',
+    'syncinternaldates',
+    'synclabels', 
+    'tests',     
+    'testslive',       
+    'testslive6',     
+    'tls2',             
+    'truncmess',  
+    'usecache', 
+    'useheader',  
+    'useuid'    
+  ),
+  'blacklist' => array(
+    'skipmess',
+    'delete2foldersonly',
+    'delete2foldersbutnot',
+    'regexflag',
+    'regexmess',
+    'pipemess',
+    'regextrans2',
+    'maxlinelengthcmd'
   )
 );

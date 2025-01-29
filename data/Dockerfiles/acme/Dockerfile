@@ -1,6 +1,7 @@
-FROM alpine:3.15
+FROM alpine:3.20
 
-LABEL maintainer "Andre Peters <andre.peters@servercow.de>"
+LABEL maintainer = "The Infrastructure Company GmbH <info@servercow.de>"
+
 
 RUN apk upgrade --no-cache \
   && apk add --update --no-cache \
@@ -14,9 +15,7 @@ RUN apk upgrade --no-cache \
   tini \
   tzdata \
   python3 \
-  py3-pip \
-  && pip3 install --upgrade pip \
-  && pip3 install acme-tiny
+  acme-tiny --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community/
 
 COPY acme.sh /srv/acme.sh
 COPY functions.sh /srv/functions.sh

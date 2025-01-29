@@ -16,6 +16,7 @@ try {
   else {
     $redis->connect('redis-mailcow', 6379);
   }
+  $redis->auth(getenv("REDISPASS"));
 }
 catch (Exception $e) {
   exit;
@@ -68,7 +69,7 @@ if (empty($_SERVER['PHP_AUTH_USER']) || empty($_SERVER['PHP_AUTH_PW'])) {
   exit(0);
 }
 
-$login_role = check_login($login_user, $login_pass, true);
+$login_role = check_login($login_user, $login_pass, array('eas' => TRUE));
 
 if ($login_role === "user") {
   header("Content-Type: application/xml");
